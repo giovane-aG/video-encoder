@@ -32,3 +32,13 @@ func (repo JobRepository) Find(id string) (*domain.Job, error) {
 
 	return job, nil
 }
+
+func (repo JobRepository) Update(job *domain.Job) (*domain.Job, error) {
+	err := repo.DB.Save(job).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return job, nil
+}
