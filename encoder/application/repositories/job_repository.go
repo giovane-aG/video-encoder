@@ -11,6 +11,12 @@ type JobRepository struct {
 	DB *gorm.DB
 }
 
+func NewJobRepository(db *gorm.DB) *JobRepository {
+	return &JobRepository{
+		DB: db,
+	}
+}
+
 func (repo JobRepository) Insert(job *domain.Job) (*domain.Job, error) {
 
 	err := repo.DB.Create(job).Error
@@ -23,14 +29,14 @@ func (repo JobRepository) Insert(job *domain.Job) (*domain.Job, error) {
 }
 
 func (repo JobRepository) Find(id string) (*domain.Job, error) {
-	var job *domain.Job
-	repo.DB.First(job, "id = ?", id)
+	var job domain.Job
+	repo.DB.Preload("Video").First(&job, "id = ?", id)
 
 	if job.ID == "" {
 		return nil, fmt.Errorf("no job with this id was found")
 	}
 
-	return job, nil
+	return &job, nil
 }
 
 func (repo JobRepository) Update(job *domain.Job) (*domain.Job, error) {

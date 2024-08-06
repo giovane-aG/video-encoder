@@ -12,7 +12,7 @@ type Job struct {
 	OutputBucketPath string    `json:"output_bucket_path" valid:"notnull"`
 	Status           string    `json:"status" valid:"notnull"`
 	Video            *Video    `json:"video" valid:"-"`
-	VideoID          *Video    `json:"-" valid:"-" gorm:"type:uuid; not null"`
+	VideoID          string    `json:"-" valid:"-" gorm:"type:uuid;column:video_id;not null"`
 	Error            string    `valid:"-"`
 	CreatedAt        time.Time `json:"created_at" valid:"-"`
 	UpdatedAt        time.Time `json:"updated_at" valid:"-"`
