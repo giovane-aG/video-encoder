@@ -1,6 +1,7 @@
 package services_test
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -20,8 +21,6 @@ func init() {
 	if err != nil {
 		log.Fatalf("error when loading env variables %s", err)
 	}
-
-	os.Setenv("CGO_ENABLED", "1")
 }
 
 func prepare() (repositories.VideoRepositoryInterface, *domain.Video) {
@@ -30,7 +29,7 @@ func prepare() (repositories.VideoRepositoryInterface, *domain.Video) {
 
 	video := domain.NewVideo()
 	video.ID = uuid.NewString()
-	video.FilePath = "path"
+	video.FilePath = "skyline.mp4"
 	video.CreatedAt = time.Now()
 
 	repo := repositories.NewVideoRepository(db)
@@ -48,4 +47,21 @@ func TestVideoServiceDownload(t *testing.T) {
 	err := videoService.Download("video-encoder-files")
 
 	require.Nil(t, err)
+
+	fileInfo, err := os.Stat(os.Getenv("localStoragePath") + "/" + video.ID + ".mp4")
+
+	fmt.Printf("%+v", fileInfo)
+
+	require.Nil(t, err)
+	require.NotNil(t, fileInfo)
+	require.Equal(t, fileInfo.Name(), video.ID+".mp4")
+
+	err = videoService.Fragment()
+	require.Nil(t, err)
+
+	fragmentedFileInfo, err := os.Stat(os.Getenv("localStoragePath") + "/" + video.ID + ".mp4")
+
+	require.Nil(t, err)
+	require.NotNil(t, fragmentedFileInfo)
+	require.Equal(t, fragmentedFileInfo.Name(), video.ID+".frag")
 }

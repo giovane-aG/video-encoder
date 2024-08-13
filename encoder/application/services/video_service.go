@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -39,7 +39,7 @@ func (videoService *VideoService) Download(bucketName string) error {
 
 	defer reader.Close()
 
-	body, err := ioutil.ReadAll(reader)
+	body, err := io.ReadAll(reader)
 	if err != nil {
 		return err
 	}
