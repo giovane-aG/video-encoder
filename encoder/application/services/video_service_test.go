@@ -59,9 +59,16 @@ func TestVideoServiceDownload(t *testing.T) {
 	err = videoService.Fragment()
 	require.Nil(t, err)
 
-	fragmentedFileInfo, err := os.Stat(os.Getenv("localStoragePath") + "/" + video.ID + ".mp4")
+	fragmentedFileInfo, err := os.Stat(os.Getenv("localStoragePath") + "/" + video.ID + ".frag")
 
 	require.Nil(t, err)
 	require.NotNil(t, fragmentedFileInfo)
 	require.Equal(t, fragmentedFileInfo.Name(), video.ID+".frag")
+
+	err = videoService.Encode()
+	require.Nil(t, err)
+
+	err = videoService.Finish()
+	require.Nil(t, err)
+
 }

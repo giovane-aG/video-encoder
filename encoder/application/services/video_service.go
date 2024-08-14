@@ -70,12 +70,12 @@ func (videoService *VideoService) Fragment() error {
 		return err
 	}
 
-	sourceFile := os.Getenv("localStoragePath" + "/" + videoService.Video.ID + ".mp4")
-	destinationFile := os.Getenv("localStoragePath" + "/" + videoService.Video.ID + ".frag")
+	sourceFile := os.Getenv("localStoragePath") + "/" + videoService.Video.ID + ".mp4"
+	destinationFile := os.Getenv("localStoragePath") + "/" + videoService.Video.ID + ".frag"
 
 	// fragments mp4 video
 	command := exec.Command("mp4fragment", sourceFile, destinationFile)
-	output, err := command.CombinedOutput()
+	output, err := command.Output()
 	if err != nil {
 		return err
 	}
