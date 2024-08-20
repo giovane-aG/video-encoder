@@ -39,3 +39,13 @@ func (vu *VideoUploadManagerService) UploadObject(objectPath string, client *sto
 
 	return nil
 }
+
+func getClientUpload() (*storage.Client, context.Context, error) {
+	ctx := context.Background()
+
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return client, ctx, nil
+}
