@@ -13,7 +13,18 @@ type JobService struct {
 
 func (j *JobService) Start() error {}
 
-func (j *JobService) changeStatus(status string) error {}
+func (j *JobService) changeStatus(status string) error {
+	var err error
+
+	j.Job.Status = status
+	j.Job, err = j.JobRepository.Update(j.Job)
+
+	if err != nil {
+		return j.failJob(err)
+	}
+
+	return nil
+}
 
 func (j *JobService) failJob(error error) error {
 	j.Job.Status = "FAILED"
