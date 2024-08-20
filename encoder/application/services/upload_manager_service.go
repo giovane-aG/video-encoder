@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"io"
+	"log"
 	"os"
 	"strings"
 
@@ -48,4 +49,21 @@ func getClientUpload() (*storage.Client, context.Context, error) {
 		return nil, nil, err
 	}
 	return client, ctx, nil
+}
+
+func (vu *VideoUploadManagerService) uploadWorker(in chan int, returnChan chan string, uploadClient *storage.Client, ctx context.Context) {
+
+	for x := range in {
+		err := vu.UploadObject(vu.Paths[x], uploadClient, ctx)
+
+		if err != nil {
+			vu.Errors = append(vu.Errors, vu.Paths[x])
+			log.Printf("error during the upload: %v. Error: %v", vu.Paths[x], err)
+			returnChan <- err.Error()
+		}
+
+		returnChan <- ""
+	}
+
+	returnChan <- "upload completed"
 }
