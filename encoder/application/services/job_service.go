@@ -15,4 +15,15 @@ func (j *JobService) Start() error {}
 
 func (j *JobService) changeStatus(status string) error {}
 
-func (j *JobService) failJob(error error) error {}
+func (j *JobService) failJob(error error) error {
+	j.Job.Status = "FAILED"
+	j.Job.Error = error.Error()
+
+	_, err := j.JobRepository.Update(j.Job)
+
+	if err != nil {
+		return err
+	}
+
+	return error
+}
