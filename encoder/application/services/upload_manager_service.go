@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"cloud.google.com/go/storage"
@@ -41,6 +43,48 @@ func (vu *VideoUploadManagerService) UploadObject(objectPath string, client *sto
 	return nil
 }
 
+func (vu *VideoUploadManagerService) ProcessUpload(concurrency int, doneUpload chan string) error {
+
+	in := make(chan int, runtime.NumCPU()) // qual o arquivo baseado na posicao do slice Paths
+	returnChannel := make(chan string)
+
+	err := vu.loadPaths()
+	if err != nil {
+		return err
+	}
+
+	uploadClient, ctx, err := getClientUpload()
+	if err != nil {
+		return err
+	}
+
+	for process := 0; process < concurrency; process++ {
+		go vu.uploadWorker(in, returnChannel, uploadClient, ctx)
+	}
+
+	go func() {
+		for x := 0; x < len(vu.Paths); x++ {
+			in <- x
+		}
+	}()
+
+	countDoneWorker := 0
+	for r := range returnChannel {
+		countDoneWorker++
+
+		if r != "" {
+			doneUpload <- r
+			break
+		}
+
+		if countDoneWorker == len(vu.Paths) {
+			close(in)
+		}
+	}
+
+	return nil
+}
+
 func getClientUpload() (*storage.Client, context.Context, error) {
 	ctx := context.Background()
 
@@ -51,8 +95,12 @@ func getClientUpload() (*storage.Client, context.Context, error) {
 	return client, ctx, nil
 }
 
-func (vu *VideoUploadManagerService) uploadWorker(in chan int, returnChan chan string, uploadClient *storage.Client, ctx context.Context) {
-
+func (vu *VideoUploadManagerService) uploadWorker(
+	in chan int,
+	returnChan chan string,
+	uploadClient *storage.Client,
+	ctx context.Context,
+) {
 	for x := range in {
 		err := vu.UploadObject(vu.Paths[x], uploadClient, ctx)
 
@@ -66,4 +114,20 @@ func (vu *VideoUploadManagerService) uploadWorker(in chan int, returnChan chan s
 	}
 
 	returnChan <- "upload completed"
+}
+
+func (vu *VideoUploadManagerService) loadPaths() error {
+
+	err := filepath.Walk(vu.VideoPath, func(path string, info os.FileInfo, err error) error {
+
+		if !info.IsDir() {
+			vu.Paths = append(vu.Paths, path)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+	return nil
 }
