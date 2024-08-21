@@ -1,7 +1,9 @@
 package services
 
 import (
+	"errors"
 	"os"
+	"strconv"
 
 	"github.com/giovane-aG/video-encoder/encoder/application/repositories"
 	"github.com/giovane-aG/video-encoder/encoder/domain"
@@ -42,6 +44,48 @@ func (j *JobService) Start() error {
 	err = j.VideoService.Encode()
 	if err != nil {
 		return j.failJob(err)
+	}
+
+	err = j.performUpload()
+	if err != nil {
+		return j.failJob(err)
+	}
+
+	err = j.changeStatus("FINISHING")
+	if err != nil {
+		return j.failJob(err)
+	}
+
+	err = j.VideoService.Finish()
+
+	err = j.changeStatus("COMPLETED")
+	if err != nil {
+		return j.failJob(err)
+	}
+
+	return nil
+}
+
+func (j *JobService) performUpload() error {
+	err := j.changeStatus("UPLOADING")
+	if err != nil {
+		j.failJob(err)
+	}
+
+	videoUpload := NewVideoUploadManagerService()
+	videoUpload.OutputBucket = os.Getenv("outputBucketName")
+	videoUpload.VideoPath = os.Getenv("localStoragePath") + "/" + j.VideoService.Video.ID
+
+	concurrency, _ := strconv.Atoi(os.Getenv("CONCURRENCY_UPLOAD"))
+	doneUpload := make(chan string)
+
+	go videoUpload.ProcessUpload(concurrency, doneUpload)
+
+	var uploadResult string
+	uploadResult = <-doneUpload
+
+	if uploadResult != "upload completed" {
+		return j.failJob(errors.New(uploadResult))
 	}
 
 	return nil
