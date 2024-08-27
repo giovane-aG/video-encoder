@@ -22,7 +22,7 @@ func NewVideoService() VideoService {
 	return VideoService{}
 }
 
-func (videoService *VideoService) Download(bucketName string) error {
+func (v *VideoService) Download(bucketName string) error {
 	ctx := context.Background()
 
 	client, err := storage.NewClient(ctx)
@@ -30,7 +30,7 @@ func (videoService *VideoService) Download(bucketName string) error {
 		return err
 	}
 
-	object := client.Bucket(bucketName).Object(videoService.Video.FilePath)
+	object := client.Bucket(bucketName).Object(v.Video.FilePath)
 
 	reader, err := object.NewReader(ctx)
 	if err != nil {
@@ -45,7 +45,7 @@ func (videoService *VideoService) Download(bucketName string) error {
 	}
 
 	file, err := os.Create(
-		os.Getenv("localStoragePath") + "/" + videoService.Video.ID + ".mp4")
+		os.Getenv("localStoragePath") + "/" + v.Video.ID + ".mp4")
 
 	if err != nil {
 		return err
@@ -58,20 +58,20 @@ func (videoService *VideoService) Download(bucketName string) error {
 
 	defer file.Close()
 
-	log.Printf("video %v has been stored", videoService.Video.ID)
+	log.Printf("video %v has been stored", v.Video.ID)
 
 	return nil
 }
 
-func (videoService *VideoService) Fragment() error {
+func (v *VideoService) Fragment() error {
 	// create a new directory for the fragmented video
-	err := os.Mkdir(os.Getenv("localStoragePath")+"/"+videoService.Video.ID, os.ModePerm)
+	err := os.Mkdir(os.Getenv("localStoragePath")+"/"+v.Video.ID, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	sourceFile := os.Getenv("localStoragePath") + "/" + videoService.Video.ID + ".mp4"
-	destinationFile := os.Getenv("localStoragePath") + "/" + videoService.Video.ID + ".frag"
+	sourceFile := os.Getenv("localStoragePath") + "/" + v.Video.ID + ".mp4"
+	destinationFile := os.Getenv("localStoragePath") + "/" + v.Video.ID + ".frag"
 
 	// fragments mp4 video
 	command := exec.Command("mp4fragment", sourceFile, destinationFile)
@@ -85,12 +85,12 @@ func (videoService *VideoService) Fragment() error {
 	return nil
 }
 
-func (videoService *VideoService) Encode() error {
+func (v *VideoService) Encode() error {
 	cmdArgs := []string{}
-	cmdArgs = append(cmdArgs, os.Getenv("localStoragePath")+"/"+videoService.Video.ID+".frag")
+	cmdArgs = append(cmdArgs, os.Getenv("localStoragePath")+"/"+v.Video.ID+".frag")
 	cmdArgs = append(cmdArgs, "--use-segment-timeline")
 	cmdArgs = append(cmdArgs, "-o")
-	cmdArgs = append(cmdArgs, os.Getenv("localStoragePath")+"/"+videoService.Video.ID)
+	cmdArgs = append(cmdArgs, os.Getenv("localStoragePath")+"/"+v.Video.ID)
 	cmdArgs = append(cmdArgs, "-f")
 	cmdArgs = append(cmdArgs, "--exec-dir")
 	cmdArgs = append(cmdArgs, "/opt/bento4/bin/")
@@ -107,26 +107,34 @@ func (videoService *VideoService) Encode() error {
 	return nil
 }
 
-func (videoService *VideoService) Finish() error {
-	err := os.Remove(os.Getenv("localStoragePath") + "/" + videoService.Video.ID + ".mp4")
+func (v *VideoService) Finish() error {
+	err := os.Remove(os.Getenv("localStoragePath") + "/" + v.Video.ID + ".mp4")
 	if err != nil {
-		log.Println("error when trying to delete mp4" + videoService.Video.ID + ".mp4")
+		log.Println("error when trying to delete mp4" + v.Video.ID + ".mp4")
 		return err
 	}
 
-	err = os.Remove(os.Getenv("localStoragePath") + "/" + videoService.Video.ID + ".frag")
+	err = os.Remove(os.Getenv("localStoragePath") + "/" + v.Video.ID + ".frag")
 	if err != nil {
-		log.Println("error when trying to delete frag" + videoService.Video.ID + ".frag")
+		log.Println("error when trying to delete frag" + v.Video.ID + ".frag")
 		return err
 	}
 
-	err = os.RemoveAll(os.Getenv("localStoragePath") + "/" + videoService.Video.ID)
+	err = os.RemoveAll(os.Getenv("localStoragePath") + "/" + v.Video.ID)
 	if err != nil {
-		log.Println("error when trying to delete directory" + videoService.Video.ID)
+		log.Println("error when trying to delete directory" + v.Video.ID)
 		return err
 	}
 
 	log.Println("files have been removed")
+	return nil
+}
+
+func (v *VideoService) InsertVideo() error {
+	_, err := v.VideoRepository.Insert(v.Video)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
