@@ -32,18 +32,22 @@ func JobWorker(
 		}
 
 		err := json.Unmarshal(message.Body, &jobService.VideoService.Video)
+		jobService.VideoService.Video.ID = uuid.NewString()
+
 		if err != nil {
 			returnChan <- returnJobResult(domain.Job{}, message, err)
 			continue
 		}
 
 		err = jobService.VideoService.Video.Validate()
+
 		if err != nil {
 			returnChan <- returnJobResult(domain.Job{}, message, err)
 			continue
 		}
 
 		err = jobService.VideoService.InsertVideo()
+
 		if err != nil {
 			returnChan <- returnJobResult(domain.Job{}, message, err)
 			continue
@@ -56,6 +60,7 @@ func JobWorker(
 		job.CreatedAt = time.Now()
 
 		_, err = jobService.JobRepository.Insert(&job)
+
 		if err != nil {
 			returnChan <- returnJobResult(domain.Job{}, message, err)
 			continue
@@ -64,6 +69,7 @@ func JobWorker(
 		jobService.Job = &job
 
 		err = jobService.Start()
+
 		if err != nil {
 			returnChan <- returnJobResult(domain.Job{}, message, err)
 			continue
